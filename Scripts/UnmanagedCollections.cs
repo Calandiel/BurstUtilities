@@ -972,5 +972,271 @@ namespace Calandiel.Collections
 			}
 		}
 	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct UnmanagedHashSet<TKey> :
+		IDisposable
+		where TKey : unmanaged, IEquatable<TKey>
+	{
+		[NativeDisableUnsafePtrRestriction]
+		public unsafe Bitmask* m_KeyPresentBuffer;
+		[NativeDisableUnsafePtrRestriction]
+		public unsafe TKey* m_Keys;
+		private uint m_Size;
+		private uint m_Capacity;
+		public const int ProbeLength = 20; // how many buckets do we check before we assume that there is no place for the item
+
+		public UnmanagedHashSet(uint defaultCapacity)
+		{
+			unsafe
+			{
+				if (defaultCapacity < 1) defaultCapacity = 1;
+
+				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + defaultCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
+				UnsafeUtility.MemSet((void*)m_KeyPresentBuffer, 0, 1 + defaultCapacity / 8);
+				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * defaultCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
+				m_Size = 0;
+				m_Capacity = defaultCapacity;
+			}
+		}
+
+		// expands the thing uwu
+		private void ExpandAndRehash()
+		{
+			unsafe
+			{
+				var oldPresence = m_KeyPresentBuffer;
+				var oldKeys = m_Keys;
+				
+				var oldCapacity = m_Capacity;
+				var newCapacity = m_Capacity * 2 + 1;
+				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + newCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
+				UnsafeUtility.MemSet(m_KeyPresentBuffer, 0, 1 + newCapacity / 8);
+				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * newCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
+				m_Capacity = newCapacity;
+				m_Size = 0;
+				for (int i = 0; i < oldCapacity; i++)
+				{
+					if (IsSlotOccupiedOnBuffer(i, oldPresence) == true)
+					{
+						var k = oldKeys[i];
+						Add(k);
+					}
+				}
+				UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+				UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+			}
+		}
+
+		private bool IsSlotOccupied(int slotID)
+		{
+			unsafe
+			{
+				return IsSlotOccupiedOnBuffer(slotID, m_KeyPresentBuffer);
+			}
+		}
+		private unsafe bool IsSlotOccupiedOnBuffer(int slotID, Bitmask* buffer)
+		{
+			var byteID = slotID / 8;
+			var dataID = slotID - byteID * 8;
+			var data = buffer[byteID];
+			return data.Get((byte)dataID);
+		}
+		private void SetSlot(int slotID, bool value)
+		{
+			unsafe
+			{
+				var byteID = slotID / 8;
+				var dataID = slotID - byteID * 8;
+				var data = m_KeyPresentBuffer[byteID];
+				data.Set((byte)dataID, value);
+				m_KeyPresentBuffer[byteID] = data;
+			}
+		}
+
+		public void Clear()
+		{
+			unsafe
+			{
+				m_Size = 0;
+				for (int i = 0; i < (1 + m_Capacity / 8); i++)
+				{
+					m_KeyPresentBuffer[i] = new Bitmask() { data = 0 };
+				}
+			}
+		}
+		public bool ContainsKey(TKey key)
+		{
+			unsafe
+			{
+				int hash = Hash(key);
+
+				for (int i = 0; i <= ProbeLength; i++)
+				{
+					var pos = Mod(hash + i, (int)m_Capacity);
+					var localKey = m_Keys[pos];
+
+					if (IsSlotOccupied(pos) == true)
+					{
+						if (key.Equals(localKey))
+						{
+							return true;
+						}
+					}
+					else
+						break;
+				}
+			}
+			return false;
+		}
+
+		// our own mod cuz '%' is dumb
+		private int Mod(int a, int m) => (a % m + m) % m;
+		private int Hash(TKey i) => Mod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
+		uint wang_hash(uint seed)
+		{
+			seed = (seed ^ 61) ^ (seed >> 16);
+			seed *= 9;
+			seed = seed ^ (seed >> 4);
+			seed *= 0x27d4eb2d;
+			seed = seed ^ (seed >> 15);
+			return seed;
+		}
+		public void Add(TKey key)
+		{
+			unsafe
+			{
+				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
+				if (LoadFactor > 0.7f) ExpandAndRehash();
+
+				var index = Hash(key);
+				int fails = 0;
+				while (true)
+				{
+					var Key = m_Keys[index];
+					if (IsSlotOccupied(index) == false)
+					{
+						// If the slot isn't occupied, we're writing a new value
+						m_Size++;
+						SetSlot(index, true);
+						m_Keys[index] = key;
+						return;
+					}
+					else if (Key.Equals(key))
+					{
+						// If the slot is occupied and the keys are equal, the value was added in the past. Nothing to be done.
+						return;
+					}
+					else
+					{
+						// if the bucket isn't open nor used by us, check the next one (linear probing)
+						index = Mod(index + 1, (int)m_Capacity);
+						// if we fail too many times, we should probably rehash.
+						// we will do it by recursively calling the function and returning early
+						fails++;
+						if (fails == ProbeLength)
+						{
+							ExpandAndRehash();
+							Add(key);
+							return;
+						}
+					}
+				}
+			}
+		}
+		public void Remove(TKey key)
+		{
+			unsafe
+			{
+				int hash = Hash(key);
+
+				for (int i = 0; i <= ProbeLength; i++)
+				{
+					var pos = Mod(hash + i, (int)m_Capacity);
+					var localKey = m_Keys[pos];
+
+					if (IsSlotOccupied(pos) == true)
+					{
+						if (key.Equals(localKey))
+						{
+							// If we managed to find the key to delete, delete it.
+							m_Keys[pos] = default;
+							m_Size--;
+							int finalIndex = pos;
+							// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
+							for (int j = i + 1; j <= ProbeLength; j++)
+							{
+								var curr = Mod(hash + j, (int)m_Capacity);
+								var prev = Mod(hash + j - 1, (int)m_Capacity);
+
+								if (IsSlotOccupied(curr) == true)
+								{
+									if (Hash(m_Keys[curr]) == hash)
+									{
+										// "shit down"
+										m_Keys[prev] = m_Keys[curr];
+									}
+									else
+									{
+										finalIndex = prev;
+										break;
+									}
+								}
+								else
+								{
+									finalIndex = prev;
+									break;
+								}
+							}
+							SetSlot(finalIndex, false);
+							return;
+						}
+					}
+					else
+						break;
+				}
+			}
+			throw new IndexOutOfRangeException($"This key ({key}) was missing from the dictionary!");
+		}
+
+		public float LoadFactor { get { return m_Size / (float)Capacity; } }
+		public int Capacity { get { return (int)m_Capacity; } }
+		public bool IsCreated
+		{
+			get { unsafe { return (IntPtr)m_Capacity != IntPtr.Zero; } }
+		}
+
+		public void Dispose()
+		{
+			unsafe
+			{
+				m_Capacity = 0;
+				m_Size = 0;
+				UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
+				UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
+				UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
+			}
+		}
+
+		public void Debug()
+		{
+			unsafe
+			{
+				var s = new System.Text.StringBuilder();
+
+				s.Append(m_Size);
+				s.Append("\n{\n");
+				for (int i = 0; i < m_Capacity; i++)
+				{
+					s.Append(IsSlotOccupied(i));
+					s.Append("   ");
+					s.Append(m_Keys[i]);
+					s.Append("\n");
+				}
+				s.Append("}");
+				UnityEngine.Debug.Log(s.ToString());
+			}
+		}
+	}
 	#endregion
 }
