@@ -5,7 +5,6 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace Calandiel.Collections
 {
-
 	public struct Box<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction] private unsafe T* ptr;
@@ -31,8 +30,6 @@ namespace Calandiel.Collections
 		public void Write(T data) { unsafe { *ptr = data; } }
 		public unsafe T* Raw() { unsafe { return ptr; } }
 	}
-
-
 
 	#region EXTENSIONS
 	public static class ListExtensions
@@ -1197,6 +1194,25 @@ namespace Calandiel.Collections
 				}
 			}
 			throw new IndexOutOfRangeException($"This key ({key}) was missing from the dictionary!");
+		}
+
+		public bool TryGetAtIndex(int index, out TKey result)
+		{
+			unsafe
+			{
+				var pos = index;
+				var posKey = m_Keys[pos];
+				if (IsSlotOccupied(pos) == true)
+				{
+					result = m_Keys[pos];
+					return true;
+				}
+				else
+				{
+					result = default;
+					return false;
+				}
+			}
 		}
 
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
