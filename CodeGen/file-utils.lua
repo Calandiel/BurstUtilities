@@ -10,7 +10,7 @@ function FILE:Close()
 end
 
 function FILE:Line(str)
-	for i=0,self.scopeDepth,1 do
+	for i=1,self.scopeDepth do
 		self.file:write("\t")
 	end
 	self.file:write(str)
@@ -18,10 +18,10 @@ function FILE:Line(str)
 end
 
 function FILE:OpenScope()
-	self.scopeDepth = self.scopeDepth + 1
 	self:Line("{")
+	self.scopeDepth = self.scopeDepth + 1
 end
-function FILE:OpenScope()
+function FILE:CloseScope()
 	self.scopeDepth = self.scopeDepth - 1
 	self:Line("}")
 end

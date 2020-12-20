@@ -6,18 +6,19 @@ This file contains definitions for the codegen to, well, generate.
 return {
 	types = {
 		{
-			name = "Tile",
-			namespace = "Apocrypha.Data",
+			name = "ExampleType",
+			namespace = "Example.Namespace",
 			-- Each component is it's own array in the SOA
 			components = {
 				{
 					vars = {
 						{
 							type = "int",
-							name = "elevation"
+							name = "example_variable"
 						},
 						{
-							type = "BIOME",
+							type = "ExampleEnum",
+							name = "example_enum_variable"
 						}
 					}
 					-- checksum <- should this be included in checksum calculations? Default: false
@@ -35,15 +36,23 @@ return {
 	},
 	enums = {
 		{
-			name = "BIOME",
-			namespace = "Apocrypha.Data",
+			name = "ExampleEnum",
+			namespace = "Example.Namespace",
 			values = {
-				"SAVANNA", "GLACIER"
+				"EXAMPLE_1", "EXAMPLE_2"
 			}
 		}
 	},
 	structs = {
+		{
+			name = "TESTstruct",
+			namespace = "Apocrypha.Data",
+			vars = {
+				{
 
+				}
+			}
+		}
 	}
 
 }
