@@ -8,28 +8,28 @@ return {
 		{
 			name = "ExampleType",
 			namespace = "Example.Namespace",
-			-- Each component is it's own array in the SOA
-			components = {
+			vars = {
 				{
-					vars = {
-						{
-							type = "int",
-							name = "example_variable"
-						},
-						{
-							type = "ExampleEnum",
-							name = "example_enum_variable"
-						}
-					}
-					-- checksum <- should this be included in checksum calculations? Default: false
+					type = "int",
+					name = "example_variable"
+					-- checksum <- should this be included in checksum calculations? Default: true
 					-- saved <- should this variable be saved? Default: true
+					-- public <- should this variable be public? Default: true
+				},{
+					type = "ExampleEnum",
+					name = "example_enum_variable"
+				},{
+					type = "Dictionary",
+					name = "example_dictionary",
+					generic_1 = "int",
+					generic_2 = "ExampleType",
+					capacity = 100
 				}
 			},
 			type = {
 				-- "dynamic" <- entities that can be created and destroyed. Characters, units.
 				-- "data" <- entities that are loaded once at game start from game files and are used by other entities. Recipes, unit definitions.
 				-- "static" <- entities that always exist. Tiles.
-				-- "struct" <- a helper structure
 				"static"
 			}
 		}

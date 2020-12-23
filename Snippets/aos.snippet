@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+	<CodeSnippet Format="1.0.0">
+		<Header>
+			<Title>AOS</Title>
+		</Header>
+		<Snippet>
+			<Code Language="CSharp">
+				<![CDATA[
+
+public partial struct $Entity$ : System.IEquatable<$Entity$>
+{
+	#region $Entity$ STUFF
+	public uint __id;
+	public uint id { get => __id; set => __id = value; }
+	public bool Equals($Entity$ other) => this.id == other.id;
+	
+	private class ___EntityKey { }
+	private class ___PagesKey { }
+	private class ___FreePtrsKey { }
+	private class ___MaxIDKey { }
+	public static readonly SharedStatic<UnmanagedDictionary<uint, SafePtr<$Entity$>>> _Entities = SharedStatic<UnmanagedDictionary<uint, SafePtr<$Entity$>>>.GetOrCreate<GameManager, ___EntityKey>();
+	public static readonly SharedStatic<UnmanagedList<IntPtr>> _Pages = SharedStatic<UnmanagedList<IntPtr>>.GetOrCreate<GameManager, ___PagesKey>();
+	public static readonly SharedStatic<UnmanagedStack<SafePtr<$Entity$>>> _FreePtrs = SharedStatic<UnmanagedStack<SafePtr<$Entity$>>>.GetOrCreate<GameManager, ___FreePtrsKey>();
+	private static readonly SharedStatic<uint> _MaxID = SharedStatic<uint>.GetOrCreate<GameManager, ___MaxIDKey>();
+	public static Dictionary<string, uint> _ByID;
+	public const int pageSize = 1000;
+	public static bool InMemory(uint id) => _Entities.Data.ContainsKey(id);
+	public static uint Create()
+	{
+		unsafe
+		{
+			var i = _MaxID.Data + 1;
+			_MaxID.Data = i;
+			var stack = _FreePtrs.Data;
+			if (stack.Length == 0) // if the stack is empty, allocate a new page...
+			{
+				var ptr = (IntPtr)UnsafeUtility.Malloc(sizeof($Entity$) * pageSize, UnsafeUtility.AlignOf<$Entity$>(), Allocator.Persistent);
+				var pages = _Pages.Data;
+				pages.Add(ptr);
+				_Pages.Data = pages;
+				for (int p = 0; p < pageSize; p++)
+				{
+					stack.Push(new SafePtr<$Entity$>() { val = (ptr + p).ToInt64() });
+				}
+			}
+			var r = stack.Pop();
+			var r_ptr = ($Entity$*)r;
+			r_ptr->id = i;
+			r_ptr->AllocateInstanceCollections();
+			var ent = _Entities.Data;
+			ent[i] = r;
+			_Entities.Data = ent;
+			_FreePtrs.Data = stack;
+			return i;
+		}
+	}
+	public void Kill()
+	{
+		unsafe
+		{
+			var ptr = _Entities.Data[this.id];
+			var stack = _FreePtrs.Data;
+			stack.Push(ptr);
+			_FreePtrs.Data = stack;
+			(($Entity$*)ptr)->DisposeInstanceCollections();
+
+			var ent = _Entities.Data;
+			ent.DeleteKey(this.id);
+			_Entities.Data = ent;
+		}
+	}
+	public static bool FromUInt(uint id, out SafePtr<$Entity$> o)
+	{
+		if (_Entities.Data.ContainsKey(id))
+		{
+			o = _Entities.Data[id];
+			return true;
+		}
+		else
+		{
+			o = default;
+			return false;
+		}
+	}
+	public static bool FromString(string id, out SafePtr<$Entity$> o)
+	{
+		if (_ByID.ContainsKey(id))
+		{
+			return FromUInt(_ByID[id], out o);
+		}
+		else
+		{
+			o = default;
+			return false;
+		}
+	}
+	public static void Allocate()
+	{
+		_MaxID.Data = 0;
+		_Entities.Data = new UnmanagedDictionary<uint, SafePtr<$Entity$>>(100);
+		_ByID = new Dictionary<string, uint>(100);
+		_FreePtrs.Data = new UnmanagedStack<SafePtr<$Entity$>>(100);
+		_Pages.Data = new UnmanagedList<IntPtr>(100);
+	}
+	public static void Dispose()
+	{
+		for(int i = 0; i < _Entities.Data.Capacity; i++)
+		{
+			SafePtr<$Entity$> ptr;
+			if (_Entities.Data.TryGetAtIndex(i, out ptr))
+			{
+				unsafe
+				{
+					(($Entity$*)ptr)->DisposeInstanceCollections();
+				}
+			}
+		}
+		_Entities.Data.Dispose();
+		_ByID = null;
+		_FreePtrs.Data.Dispose();
+		for (int i = 0; i < _Pages.Data.Length; i++)
+		{
+			unsafe
+			{
+				var page = (void*)_Pages.Data[i];
+				UnsafeUtility.Free(page, Allocator.Persistent);
+			}
+		}
+		_Pages.Data.Dispose();
+	}
+	#endregion
+}
+				]]>
+			</Code>
+			<Declarations>
+				<Literal>
+					<ID>Entity</ID>
+					<ToolTip>Choose the name of this entity type.</ToolTip>
+					<Default>owo</Default>
+				</Literal>
+			</Declarations>
+		</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

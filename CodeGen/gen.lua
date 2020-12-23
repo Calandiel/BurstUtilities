@@ -24,16 +24,49 @@ for k,v in pairs(types) do
 	-- 'v' is a table containing our data.
 	local name = v["name"]
 	local namespace = v["namespace"]
-	local components = v["components"]
+	local vars = v["vars"]
 	local type = v["type"]
 
 	if name == nil then print("ERROR! A TYPE HAS NO NAME!") end
+
+	-- First order of business is to declare the SOA
+	f:Line("namespace Calandiel.CodeGen")
+	f:OpenScope()
+	f:Line("public static class " .. name .. "_CodeGen")
+	f:OpenScope()
+	-- ###
+	-- ### ALLOC AND DISPOSE ###
+	-- ###
+
+	f:CloseScope()
+	f:CloseScope()
 
 	if namespace ~= nil then
 		f:Line("namespace " .. namespace)
 		f:OpenScope()
 	end
-	-- First order of business is to declare the SOA
+	-- ###
+	-- ### Declare the AOS struct ###
+	-- ###
+	f:Line("[System.Serializable]")
+	f:Line("public struct" .. name .. "")
+	f:OpenScope()
+	-- Loop over all variables
+	f:Line("public int id;")
+	for _,v in pairs(vars) do
+		local type = v["type"]
+		local name = v["name"]
+		local pub = v["public"]
+		local check = v["checksum"]
+		local saved = v["saved"]
+
+		local pub = "public"
+		if pub ~= nil and pub == false then pub = "private" end
+		f:Line(pub .. " " .. type .. " " .. name .. ";")
+	end
+	-- Create a function that allocates all collections
+	-- Create a function that disposes all collections
+	f:CloseScope()
 
 	if namespace ~= nil then
 		f:CloseScope()
@@ -43,7 +76,6 @@ end
 -- #############
 -- ### ENUMS ###
 -- #############
-do
 local enums = data["enums"]
 f:Line("")
 f:Line("#region ENUMS")
@@ -75,7 +107,8 @@ for k,e in pairs(enums) do
 	end
 end
 f:Line("#endregion // ENUMS")
-end
+
+
 
 f:Close()
 print("--- CODEGEN END ---")

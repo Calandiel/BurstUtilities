@@ -5,10 +5,27 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace Calandiel.Collections
 {
+	public struct SafePtr<T> : System.IEquatable<SafePtr<T>> where T : unmanaged
+	{
+		public long val;
+		public bool Equals(SafePtr<T> other) => this.val == other.val;
+		public unsafe static explicit operator T*(SafePtr<T> ptr) => (T*)(new IntPtr(ptr.val)).ToPointer();
+		public unsafe static explicit operator SafePtr<T>(T* ptr) => new SafePtr<T>() { val = ((IntPtr)ptr).ToInt64() };
+	}
+
 	public struct Box<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction] private unsafe T* ptr;
 
+		public static Box<T> FromSafePtr(SafePtr<T> data)
+		{
+			unsafe
+			{
+				var box = new Box<T>();
+				box.ptr = (T*)(new IntPtr(data.val).ToPointer());
+				return box;
+			}
+		}
 		public static Box<T> Create(T data)
 		{
 			unsafe
@@ -946,6 +963,23 @@ namespace Calandiel.Collections
 				UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
 			}
 		}
+		public bool TryGetAtIndex(int index, out TValue result)
+		{
+			unsafe
+			{
+				var pos = index;
+				if (IsSlotOccupied(pos) == true)
+				{
+					result = m_Values[pos];
+					return true;
+				}
+				else
+				{
+					result = default;
+					return false;
+				}
+			}
+		}
 
 		public void Debug()
 		{
@@ -1201,7 +1235,7 @@ namespace Calandiel.Collections
 			unsafe
 			{
 				var pos = index;
-				var posKey = m_Keys[pos];
+				//var posKey = m_Keys[pos];
 				if (IsSlotOccupied(pos) == true)
 				{
 					result = m_Keys[pos];
