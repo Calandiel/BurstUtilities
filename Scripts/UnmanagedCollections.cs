@@ -1,11 +1,22 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace Calandiel.Collections
 {
-	public struct SafePtr<T> : System.IEquatable<SafePtr<T>> where T : unmanaged
+	public class UnmanagedCollectionAttribute : Attribute
+	{
+	}
+	public interface IUnmanagedCollectionSave
+	{
+		public void Save(System.IO.BinaryWriter writer);
+		public void Load(System.IO.BinaryReader reader);
+	}
+
+
+	public struct SafePtr<T> : IEquatable<SafePtr<T>> where T : unmanaged
 	{
 		public long val;
 		public bool Equals(SafePtr<T> other) => this.val == other.val;
@@ -134,7 +145,8 @@ namespace Calandiel.Collections
 
 	#region COLLECTIONS
 	[StructLayout(LayoutKind.Sequential)]
-	public struct UnmanagedList<T> : IDisposable where T : unmanaged
+	[UnmanagedCollection]
+	public struct UnmanagedList<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		private unsafe void* m_Buffer;
@@ -267,6 +279,21 @@ namespace Calandiel.Collections
 			}
 		}
 
+		public T[] ToArray()
+		{
+			var o = new T[this.Length];
+			for (int i = 0; i < this.Length; i++)
+				o[i] = this[i];
+			return o;
+		}
+		public static UnmanagedList<T> FromArray(T[] arr)
+		{
+			var o = new UnmanagedList<T>((uint)arr.Length);
+			for (int i = 0; i < arr.Length; i++)
+				o.Add(arr[i]);
+			return o;
+		}
+
 
 		public void Debug()
 		{
@@ -285,9 +312,30 @@ namespace Calandiel.Collections
 				UnityEngine.Debug.Log(s.ToString());
 			}
 		}
+
+		public void Save(BinaryWriter writer)
+		{
+			writer.Write((int)this.Length);
+			for (int i = 0; i < this.Length; i++)
+			{
+				Utilities.SavingUtility.Save(this[i], writer);
+			}
+		}
+
+		public void Load(BinaryReader reader)
+		{
+			var len = reader.ReadInt32();
+			for (int i = 0; i < len; i++)
+			{
+				object t = default(T);
+				Utilities.SavingUtility.Load(ref t, reader);
+				this.Add((T)t);
+			}
+		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	public struct UnmanagedArray<T> : IDisposable where T : unmanaged
+	[UnmanagedCollection]
+	public struct UnmanagedArray<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		public unsafe void* m_Buffer;
@@ -349,9 +397,43 @@ namespace Calandiel.Collections
 				}
 			}
 		}
+		public T[] ToArray()
+		{
+			var o = new T[this.Length];
+			for (int i = 0; i < this.Length; i++)
+				o[i] = this[i];
+			return o;
+		}
+		public static UnmanagedArray<T> FromArray(T[] arr)
+		{
+			var o = new UnmanagedArray<T>((uint)arr.Length);
+			for (int i = 0; i < arr.Length; i++)
+				o[i] = arr[i];
+			return o;
+		}
 
+		public void Save(BinaryWriter writer)
+		{
+			writer.Write((int)this.Length);
+			for (int i = 0; i < this.Length; i++)
+			{
+				Utilities.SavingUtility.Save(this[i], writer);
+			}
+		}
+		public void Load(BinaryReader reader)
+		{
+			var len = reader.ReadInt32();
+			this = new UnmanagedArray<T>((uint)len);
+			for (int i = 0; i < len; i++)
+			{
+				object t = default(T);
+				Utilities.SavingUtility.Load(ref t, reader);
+				this[i] = (T)t;
+			}
+		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
+	[UnmanagedCollection]
 	public struct UnmanagedStack<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -485,8 +567,35 @@ namespace Calandiel.Collections
 				}
 			}
 		}
+		public T[] ToArray()
+		{
+			var o = new T[this.Length];
+			for (int i = 0; i < this.Length; i++)
+				o[i] = this[i];
+			return o;
+		}
+
+		public void Save(BinaryWriter writer)
+		{
+			writer.Write((int)this.Length);
+			for (int i = 0; i < this.Length; i++)
+			{
+				Utilities.SavingUtility.Save(this[i], writer);
+			}
+		}
+		public void Load(BinaryReader reader)
+		{
+			var len = reader.ReadInt32();
+			for (int i = 0; i < len; i++)
+			{
+				object t = default(T);
+				Utilities.SavingUtility.Load(ref t, reader);
+				this.Push((T)t);
+			}
+		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
+	[UnmanagedCollection]
 	public struct UnmanagedQueue<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -652,8 +761,8 @@ namespace Calandiel.Collections
 		}
 
 	}
-
 	[StructLayout(LayoutKind.Sequential)]
+	[UnmanagedCollection]
 	public struct UnmanagedDictionary<TKey, TValue> :
 		IDisposable
 		where TValue : unmanaged, IEquatable<TValue>
@@ -1003,8 +1112,8 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-
 	[StructLayout(LayoutKind.Sequential)]
+	[UnmanagedCollection]
 	public struct UnmanagedHashSet<TKey> :
 		IDisposable
 		where TKey : unmanaged, IEquatable<TKey>
