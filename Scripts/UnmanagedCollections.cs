@@ -434,7 +434,7 @@ namespace Calandiel.Collections
 	}
 	[StructLayout(LayoutKind.Sequential)]
 	[UnmanagedCollection]
-	public struct UnmanagedStack<T> : IDisposable where T : unmanaged
+	public struct UnmanagedStack<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		public unsafe void* m_Buffer;
@@ -764,7 +764,7 @@ namespace Calandiel.Collections
 	[StructLayout(LayoutKind.Sequential)]
 	[UnmanagedCollection]
 	public struct UnmanagedDictionary<TKey, TValue> :
-		IDisposable
+		IDisposable, IUnmanagedCollectionSave
 		where TValue : unmanaged, IEquatable<TValue>
 		where TKey : unmanaged, IEquatable<TKey>
 	{
@@ -1072,19 +1072,21 @@ namespace Calandiel.Collections
 				UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
 			}
 		}
-		public bool TryGetAtIndex(int index, out TValue result)
+		public bool TryGetAtIndex(int index, out TKey key, out TValue value)
 		{
 			unsafe
 			{
 				var pos = index;
 				if (IsSlotOccupied(pos) == true)
 				{
-					result = m_Values[pos];
+					key = m_Keys[pos];
+					value = m_Values[pos];
 					return true;
 				}
 				else
 				{
-					result = default;
+					key = default;
+					value = default;
 					return false;
 				}
 			}
@@ -1111,11 +1113,39 @@ namespace Calandiel.Collections
 				UnityEngine.Debug.Log(s.ToString());
 			}
 		}
+
+		public void Save(BinaryWriter writer)
+		{
+			writer.Write((int)this.m_Size);
+			for (int i = 0; i < this.Capacity; i++)
+			{
+				if (this.TryGetAtIndex(i, out TKey key, out TValue val))
+				{
+					// key
+					Utilities.SavingUtility.Save(key, writer);
+					// value
+					Utilities.SavingUtility.Save(val, writer);
+				}
+			}
+		}
+		public void Load(BinaryReader reader)
+		{
+			var len = reader.ReadInt32();
+			this = new UnmanagedDictionary<TKey, TValue>((uint)len);
+			for (int i = 0; i < len; i++)
+			{
+				object key = default(TKey);
+				Utilities.SavingUtility.Load(ref key, reader);
+				object value = default(TValue);
+				Utilities.SavingUtility.Load(ref key, reader);
+				this[(TKey)key] = (TValue)value;
+			}
+		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
 	[UnmanagedCollection]
 	public struct UnmanagedHashSet<TKey> :
-		IDisposable
+		IDisposable, IUnmanagedCollectionSave
 		where TKey : unmanaged, IEquatable<TKey>
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -1394,6 +1424,29 @@ namespace Calandiel.Collections
 				}
 				s.Append("}");
 				UnityEngine.Debug.Log(s.ToString());
+			}
+		}
+
+		public void Save(BinaryWriter writer)
+		{
+			writer.Write((int)this.m_Size);
+			for (int i = 0; i < this.Capacity; i++)
+			{
+				if(this.TryGetAtIndex(i, out TKey val))
+				{
+					Utilities.SavingUtility.Save(val, writer);
+				}
+			}
+		}
+		public void Load(BinaryReader reader)
+		{
+			var len = reader.ReadInt32();
+			this = new UnmanagedHashSet<TKey>((uint)len);
+			for (int i = 0; i < len; i++)
+			{
+				object key = default(TKey);
+				Utilities.SavingUtility.Load(ref key, reader);
+				this.Add((TKey)key);
 			}
 		}
 	}
