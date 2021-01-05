@@ -11,10 +11,9 @@ namespace Calandiel.Collections
 	}
 	public interface IUnmanagedCollectionSave
 	{
-		public void Save(System.IO.BinaryWriter writer);
-		public void Load(System.IO.BinaryReader reader);
+		public void Save(BinaryWriter writer);
+		public void Load(BinaryReader reader);
 	}
-
 
 	public struct SafePtr<T> : IEquatable<SafePtr<T>> where T : unmanaged
 	{
@@ -1137,7 +1136,7 @@ namespace Calandiel.Collections
 				object key = default(TKey);
 				Utilities.SavingUtility.Load(ref key, reader);
 				object value = default(TValue);
-				Utilities.SavingUtility.Load(ref key, reader);
+				Utilities.SavingUtility.Load(ref value, reader);
 				this[(TKey)key] = (TValue)value;
 			}
 		}
