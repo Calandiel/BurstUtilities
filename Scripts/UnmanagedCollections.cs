@@ -11,8 +11,8 @@ namespace Calandiel.Collections
 	}
 	public interface IUnmanagedCollectionSave
 	{
-		public void Save(BinaryWriter writer);
-		public void Load(BinaryReader reader);
+		void Save(System.IO.BinaryWriter writer);
+		void Load(System.IO.BinaryReader reader);
 	}
 
 	public struct SafePtr<T> : IEquatable<SafePtr<T>> where T : unmanaged
