@@ -10,6 +10,17 @@ namespace Calandiel.Utilities
 {
 	public static class SavingUtility
 	{
+		public static void Save<T>(T obj, BinaryWriter writer) where T: unmanaged
+		{
+			Save((object)obj, writer);
+		}
+		public static T Load<T>(BinaryReader reader) where T : unmanaged
+		{
+			var obj = (object)default(T);
+			Load(ref obj, reader);
+			return (T)obj;
+		}
+
 		public static void Save(object obj, BinaryWriter writer)
 		{
 			// First, check if we're saving a value type.
@@ -73,8 +84,12 @@ namespace Calandiel.Utilities
 							var vars = type.GetFields();
 							foreach (var v in vars)
 							{
-								var o = v.GetValue(obj);
-								Save(o, writer);
+								// statics could easily cause infinite recursion
+								if (v.IsStatic == false)
+								{
+									var o = v.GetValue(obj);
+									Save(o, writer);
+								}
 							}
 						}
 						break;
@@ -147,9 +162,13 @@ namespace Calandiel.Utilities
 							var vars = type.GetFields();
 							foreach (var v in vars)
 							{
-								var o = v.GetValue(obj);
-								Load(ref o, reader);
-								v.SetValue(obj, o);
+								// statics could easily cause infinite recursion
+								if (v.IsStatic == false)
+								{
+									var o = v.GetValue(obj);
+									Load(ref o, reader);
+									v.SetValue(obj, o);
+								}
 							}
 						}
 						break;

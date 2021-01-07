@@ -15,7 +15,6 @@ namespace Calandiel.Collections
 		void Load(System.IO.BinaryReader reader);
 	}
 
-
 	public struct SafePtr<T> : IEquatable<SafePtr<T>> where T : unmanaged
 	{
 		public long val;
@@ -1137,7 +1136,7 @@ namespace Calandiel.Collections
 				object key = default(TKey);
 				Utilities.SavingUtility.Load(ref key, reader);
 				object value = default(TValue);
-				Utilities.SavingUtility.Load(ref key, reader);
+				Utilities.SavingUtility.Load(ref value, reader);
 				this[(TKey)key] = (TValue)value;
 			}
 		}
