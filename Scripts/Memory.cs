@@ -22,8 +22,23 @@ namespace Calandiel
 				UnsafeUtility.Free((void*)ptr, Unity.Collections.Allocator.Persistent);
 			}
 		}
+		//UnsafeUtility.WriteArrayElement<UnmanagedDictionary<Vector3Int, int>>(worldTilettesPtr, 0, new UnmanagedDictionary<Vector3Int, int>(1000));
+		public static void SafeWriteStruct<T>(IntPtr ptr, T value, int index) where T : struct
+		{
+			unsafe
+			{
+				UnsafeUtility.WriteArrayElement<T>(ptr.ToPointer(), index, value);
+			}
+		}
+		public static T SafeReadStruct<T>(IntPtr ptr, int index) where T : struct
+		{
+			unsafe
+			{
+				return UnsafeUtility.ReadArrayElement<T>(ptr.ToPointer(), index);
+			}
+		}
 
-		public static void SafeWrite<T>(IntPtr ptr, T value, int index) where T : unmanaged
+		public static void SafeWriteUnmanaged<T>(IntPtr ptr, T value, int index) where T : unmanaged
 		{
 			unsafe
 			{
@@ -31,7 +46,7 @@ namespace Calandiel
 				p[index] = value;
 			}
 		}
-		public static T SafeRead<T>(IntPtr ptr, int index) where T : unmanaged
+		public static T SafeReadUnmanaged<T>(IntPtr ptr, int index) where T : unmanaged
 		{
 			unsafe
 			{

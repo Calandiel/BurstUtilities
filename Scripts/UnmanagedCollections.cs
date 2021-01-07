@@ -24,26 +24,17 @@ namespace Calandiel.Collections
 		public unsafe static explicit operator SafePtr<T>(T* ptr) => new SafePtr<T>() { val = ((IntPtr)ptr).ToInt64() };
 	}
 
-	public struct Box<T> : IDisposable where T : unmanaged
+	public struct Box<T> : IDisposable where T : struct
 	{
-		[NativeDisableUnsafePtrRestriction] private unsafe T* ptr;
+		[NativeDisableUnsafePtrRestriction] private unsafe void* ptr;
 
-		public static Box<T> FromSafePtr(SafePtr<T> data)
-		{
-			unsafe
-			{
-				var box = new Box<T>();
-				box.ptr = (T*)(new IntPtr(data.val).ToPointer());
-				return box;
-			}
-		}
 		public static Box<T> Create(T data)
 		{
 			unsafe
 			{
 				var box = new Box<T>();
-				box.ptr = (T*)UnsafeUtility.Malloc(sizeof(T), UnsafeUtility.AlignOf<T>(), Allocator.Persistent);
-				*box.ptr = data;
+				box.ptr = UnsafeUtility.Malloc(UnsafeUtility.SizeOf<T>(), UnsafeUtility.AlignOf<T>(), Allocator.Persistent);
+				UnsafeUtility.WriteArrayElement<T>(box.ptr, 0, data);
 				return box;
 			}
 		}
@@ -51,12 +42,13 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				UnsafeUtility.Free((void*)ptr, Allocator.Persistent);
+				UnsafeUtility.Free(ptr, Allocator.Persistent);
 			}
 		}
-		public T Read() { unsafe { return *ptr; } }
-		public void Write(T data) { unsafe { *ptr = data; } }
-		public unsafe T* Raw() { unsafe { return ptr; } }
+		public T Read() { unsafe { return UnsafeUtility.ReadArrayElement<T>(ptr, 0); } }
+		public void Write(T data) { unsafe { UnsafeUtility.WriteArrayElement<T>(ptr, 0, data); } }
+		public unsafe void* Raw() { unsafe { return ptr; } }
+		public IntPtr RawSafe() { unsafe { return (IntPtr)ptr; } }
 	}
 
 	#region EXTENSIONS
@@ -227,6 +219,14 @@ namespace Calandiel.Collections
 				{
 					m_Length--;
 				}
+			}
+		}
+		public void RemoveAtSwapBack(int index)
+		{
+			unsafe
+			{
+				this[index] = this[this.Length - 1];
+				this.m_Length--;
 			}
 		}
 		/// <summary>
