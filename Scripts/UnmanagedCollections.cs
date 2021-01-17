@@ -1055,6 +1055,7 @@ namespace Calandiel.Collections
 
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
 		public int Capacity { get { return (int)m_Capacity; } }
+		public int Size { get { return (int)m_Size; } }
 		public bool IsCreated
 		{
 			get { unsafe { return (IntPtr)m_Capacity != IntPtr.Zero; } }
@@ -1156,6 +1157,20 @@ namespace Calandiel.Collections
 		public const int ProbeLength = 20; // how many buckets do we check before we assume that there is no place for the item
 
 		public UnmanagedHashSet(uint defaultCapacity)
+		{
+			unsafe
+			{
+				if (defaultCapacity < 1) defaultCapacity = 1;
+
+				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + defaultCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
+				UnsafeUtility.MemSet((void*)m_KeyPresentBuffer, 0, 1 + defaultCapacity / 8);
+				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * defaultCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
+				m_Size = 0;
+				m_Capacity = defaultCapacity;
+			}
+		}
+		// Same as the constructor!
+		private void Init(uint defaultCapacity)
 		{
 			unsafe
 			{
@@ -1275,6 +1290,8 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				if(!IsCreated) Init(3); // sanity check
+
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
 				if (LoadFactor > 0.7f) ExpandAndRehash();
 
@@ -1389,6 +1406,7 @@ namespace Calandiel.Collections
 
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
 		public int Capacity { get { return (int)m_Capacity; } }
+		public int Size { get { return (int)m_Size; } }
 		public bool IsCreated
 		{
 			get { unsafe { return (IntPtr)m_Capacity != IntPtr.Zero; } }
