@@ -963,6 +963,7 @@ namespace Calandiel.Collections
 			}
 			throw new IndexOutOfRangeException("This value was missing from the dictionary!");
 		}
+
 		public void DeleteKey(TKey key)
 		{
 			unsafe
