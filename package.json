@@ -1,0 +1,7 @@
+{
+    "name": "com.calandiel.utils",
+    "displayName": "Calandiel's C# Utilities",
+    "version": "1.0.0",
+    "unity": "2020.2",
+    "description": "Unmanaged collections and other utilities."
+}

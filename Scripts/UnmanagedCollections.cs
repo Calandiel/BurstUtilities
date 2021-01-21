@@ -764,7 +764,7 @@ namespace Calandiel.Collections
 	[UnmanagedCollection]
 	public struct UnmanagedDictionary<TKey, TValue> :
 		IDisposable, IUnmanagedCollectionSave
-		where TValue : unmanaged, IEquatable<TValue>
+		where TValue : unmanaged//, IEquatable<TValue>
 		where TKey : unmanaged, IEquatable<TKey>
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -944,6 +944,7 @@ namespace Calandiel.Collections
 				}
 			}
 		}
+		/*
 		public void DeleteValue(TValue val)
 		{
 			unsafe
@@ -963,6 +964,7 @@ namespace Calandiel.Collections
 			}
 			throw new IndexOutOfRangeException("This value was missing from the dictionary!");
 		}
+		*/
 
 		public void DeleteKey(TKey key)
 		{
