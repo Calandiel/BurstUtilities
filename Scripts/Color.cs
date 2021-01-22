@@ -15,6 +15,7 @@ namespace Calandiel
 		public byte a;
 
 		public CColor(byte r, byte g, byte b, byte a) { this.r = r; this.g = g; this.b = b; this.a = a; }
+		public CColor(byte r, byte g, byte b) { this.r = r; this.g = g; this.b = b; this.a = 255; }
 
 		public static bool operator ==(CColor a, CColor b) => a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 		public static bool operator !=(CColor a, CColor b) => a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a;
