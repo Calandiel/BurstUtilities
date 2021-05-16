@@ -903,6 +903,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				if (Capacity == 0) ExpandAndRehash();
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
 				if (LoadFactor > 0.7f) ExpandAndRehash();
 
@@ -1024,6 +1025,8 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				if(Capacity == 0) { result = default; return false; }
+
 				result = default;
 				var hash = Hash(key);
 
