@@ -1117,9 +1117,9 @@ namespace Calandiel.Collections
 				{
 					s.Append(IsSlotOccupied(i));
 					s.Append("   ");
-					s.Append(m_Keys[i]);
+					s.Append(m_Keys[i].ToString());
 					s.Append("   ");
-					s.Append(m_Values[i]);
+					s.Append(m_Values[i].ToString());
 					s.Append("\n");
 				}
 				s.Append("}");
