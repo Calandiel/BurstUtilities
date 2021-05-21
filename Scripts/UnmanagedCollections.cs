@@ -1058,6 +1058,13 @@ namespace Calandiel.Collections
 			}
 			set { Set(key, value); }
 		}
+		public TValue GetOrDefault(TKey key)
+		{
+			if (!TryGetValue(key, out TValue owo))
+				return default;
+			else
+				return owo;
+		}
 
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
 		public int Capacity { get { return (int)m_Capacity; } }
