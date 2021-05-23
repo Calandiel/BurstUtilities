@@ -44,6 +44,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				UnityEngine.Debug.Log("EXPAND AND REHASH");
 				var oldPresence = m_KeyPresentBuffer;
 				var oldKeys = m_Keys;
 				var oldValues = m_Values;
@@ -53,7 +54,6 @@ namespace Calandiel.Collections
 
 				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + newCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
 				UnsafeUtility.MemSet(m_KeyPresentBuffer, 0, 1 + newCapacity / 8);
-				
 				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * newCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
 				m_Values = (TValue*)UnsafeUtility.Malloc(sizeof(TValue) * newCapacity, UnsafeUtility.AlignOf<TValue>(), Allocator.Persistent);
 				m_Capacity = newCapacity;
@@ -71,9 +71,10 @@ namespace Calandiel.Collections
 
 				if (oldCapacity > 0)
 				{
-					//UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
-					//UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
-					//UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
+					UnityEngine.Debug.Log($"Reshash clear: {((IntPtr)oldPresence).ToInt64()} {((IntPtr)oldKeys).ToInt64()} {((IntPtr)oldValues).ToInt64()}");
+					UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+					UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+					UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
 				}
 			}
 		}
