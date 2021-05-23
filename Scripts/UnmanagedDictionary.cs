@@ -72,9 +72,9 @@ namespace Calandiel.Collections
 				if (oldCapacity > 0)
 				{
 					UnityEngine.Debug.Log($"Reshash clear: {((IntPtr)oldPresence).ToInt64()} {((IntPtr)oldKeys).ToInt64()} {((IntPtr)oldValues).ToInt64()}");
-					UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
-					UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
-					UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
 				}
 			}
 		}
