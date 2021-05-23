@@ -53,15 +53,16 @@ namespace Calandiel.Collections
 
 				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + newCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
 				UnsafeUtility.MemSet(m_KeyPresentBuffer, 0, 1 + newCapacity / 8);
+				
 				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * newCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
 				m_Values = (TValue*)UnsafeUtility.Malloc(sizeof(TValue) * newCapacity, UnsafeUtility.AlignOf<TValue>(), Allocator.Persistent);
 				m_Capacity = newCapacity;
 				m_Size = 0;
+				
 				for (int i = 0; i < oldCapacity; i++)
 				{
 					if (IsSlotOccupiedOnBuffer(i, oldPresence) == true)
 					{
-
 						var k = oldKeys[i];
 						var v = oldValues[i];
 						Set(k, v);
@@ -70,9 +71,9 @@ namespace Calandiel.Collections
 
 				if (oldCapacity > 0)
 				{
-					UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
-					UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
-					UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+					//UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
 				}
 			}
 		}
