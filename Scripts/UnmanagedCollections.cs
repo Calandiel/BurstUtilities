@@ -1223,8 +1223,11 @@ namespace Calandiel.Collections
 						Add(k);
 					}
 				}
-				UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
-				UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+				if (oldCapacity > 0)
+				{
+					UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+					UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+				}
 			}
 		}
 
