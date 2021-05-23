@@ -44,7 +44,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				UnityEngine.Debug.Log("EXPAND AND REHASH");
+				//UnityEngine.Debug.Log("EXPAND AND REHASH");
 				var oldPresence = m_KeyPresentBuffer;
 				var oldKeys = m_Keys;
 				var oldValues = m_Values;
@@ -71,10 +71,10 @@ namespace Calandiel.Collections
 
 				if (oldCapacity > 0)
 				{
-					UnityEngine.Debug.Log($"Reshash clear: {((IntPtr)oldPresence).ToInt64()} {((IntPtr)oldKeys).ToInt64()} {((IntPtr)oldValues).ToInt64()}");
-					//UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
-					//UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
-					//UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
+					//UnityEngine.Debug.Log($"Reshash clear: {((IntPtr)oldPresence).ToInt64()} {((IntPtr)oldKeys).ToInt64()} {((IntPtr)oldValues).ToInt64()}");
+					UnsafeUtility.Free((void*)oldPresence, Allocator.Persistent);
+					UnsafeUtility.Free((void*)oldKeys, Allocator.Persistent);
+					UnsafeUtility.Free((void*)oldValues, Allocator.Persistent);
 				}
 			}
 		}
