@@ -1081,11 +1081,14 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				if (m_Capacity > 0)
+				{
+					UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
+					UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
+					UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
+				}
 				m_Capacity = 0;
 				m_Size = 0;
-				UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
-				UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
-				UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
 			}
 		}
 		public bool TryGetAtIndex(int index, out TKey key, out TValue value)
@@ -1435,11 +1438,15 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
+				if (m_Capacity > 0)
+				{
+					UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
+					UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
+					UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
+				}
+
 				m_Capacity = 0;
 				m_Size = 0;
-				UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
-				UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
-				UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
 			}
 		}
 
