@@ -50,6 +50,7 @@ namespace Calandiel.Collections
 
 				var oldCapacity = m_Capacity;
 				var newCapacity = m_Capacity * 2 + 3;
+
 				m_KeyPresentBuffer = (Bitmask*)UnsafeUtility.Malloc(1 + newCapacity / 8, UnsafeUtility.AlignOf<byte>(), Allocator.Persistent);
 				UnsafeUtility.MemSet(m_KeyPresentBuffer, 0, 1 + newCapacity / 8);
 				m_Keys = (TKey*)UnsafeUtility.Malloc(sizeof(TKey) * newCapacity, UnsafeUtility.AlignOf<TKey>(), Allocator.Persistent);
@@ -60,6 +61,7 @@ namespace Calandiel.Collections
 				{
 					if (IsSlotOccupiedOnBuffer(i, oldPresence) == true)
 					{
+
 						var k = oldKeys[i];
 						var v = oldValues[i];
 						Set(k, v);
@@ -195,27 +197,6 @@ namespace Calandiel.Collections
 				}
 			}
 		}
-		/*
-		public void DeleteValue(TValue val)
-		{
-			unsafe
-			{
-				for (int i = 0; i < m_Capacity; i++)
-				{
-					if (IsSlotOccupied(i))
-					{
-						var v = m_Values[i];
-						if (v.Equals(val))
-						{
-							var key = m_Keys[i];
-							DeleteKey(key);
-						}
-					}
-				}
-			}
-			throw new IndexOutOfRangeException("This value was missing from the dictionary!");
-		}
-		*/
 
 		public void DeleteKey(TKey key)
 		{
@@ -330,13 +311,12 @@ namespace Calandiel.Collections
 			{
 				if (m_Capacity > 0)
 				{
-					UnityEngine.Debug.Log($"Capacity: {m_Capacity}");
 					UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
 					UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
-					UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
+					UnsafeUtility.Free((void*)m_Values, Allocator.Persistent);
+					m_Capacity = 0;
+					m_Size = 0;
 				}
-				m_Capacity = 0;
-				m_Size = 0;
 			}
 		}
 		public bool TryGetAtIndex(int index, out TKey key, out TValue value)

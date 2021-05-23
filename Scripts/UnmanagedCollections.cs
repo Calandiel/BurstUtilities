@@ -1041,7 +1041,6 @@ namespace Calandiel.Collections
 				{
 					UnsafeUtility.Free((void*)m_KeyPresentBuffer, Allocator.Persistent);
 					UnsafeUtility.Free((void*)m_Keys, Allocator.Persistent);
-					UnsafeUtility.Free((void*)m_Capacity, Allocator.Persistent);
 				}
 
 				m_Capacity = 0;
