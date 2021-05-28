@@ -22,8 +22,6 @@ namespace Calandiel.Collections
 		private uint m_Size;
 		private uint m_Capacity;
 
-		public const int ProbeLength = 20; // how many buckets do we check before we assume that there is no place for the item
-
 		public UnmanagedDictionary(uint defaultCapacity)
 		{
 			unsafe
@@ -44,7 +42,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				//UnityEngine.Debug.Log("EXPAND AND REHASH");
+				UnityEngine.Debug.Log($"EXPAND AND REHASH FROM: {m_Capacity}, INTO: {2 * m_Capacity + 3}");
 				var oldPresence = m_KeyPresentBuffer;
 				var oldKeys = m_Keys;
 				var oldValues = m_Values;
@@ -79,32 +77,6 @@ namespace Calandiel.Collections
 			}
 		}
 
-		private bool IsSlotOccupied(int slotID)
-		{
-			unsafe
-			{
-				return IsSlotOccupiedOnBuffer(slotID, m_KeyPresentBuffer);
-			}
-		}
-		private unsafe bool IsSlotOccupiedOnBuffer(int slotID, Bitmask* buffer)
-		{
-			var byteID = slotID / 8;
-			var dataID = slotID - byteID * 8;
-			var data = buffer[byteID];
-			return data.Get((byte)dataID);
-		}
-		private void SetSlot(int slotID, bool value)
-		{
-			unsafe
-			{
-				var byteID = slotID / 8;
-				var dataID = slotID - byteID * 8;
-				var data = m_KeyPresentBuffer[byteID];
-				data.Set((byte)dataID, value);
-				m_KeyPresentBuffer[byteID] = data;
-			}
-		}
-
 		public void Clear()
 		{
 			unsafe
@@ -121,37 +93,25 @@ namespace Calandiel.Collections
 			unsafe
 			{
 				int hash = Hash(key);
-
-				for (int i = 0; i <= ProbeLength; i++)
+				int index = 0;
+				while(true)
 				{
-					var pos = Mod(hash + i, (int)m_Capacity);
-					var localKey = m_Keys[pos];
+					var pos = hash + index;
+					if (pos >= m_Capacity) return false;
 
 					if (IsSlotOccupied(pos) == true)
 					{
+						var localKey = m_Keys[pos];
 						if (key.Equals(localKey))
 						{
 							return true;
 						}
 					}
 					else
-						break;
+						return false;
+					index++;
 				}
 			}
-			return false;
-		}
-
-		// our own mod cuz '%' is dumb
-		private int Mod(int a, int m) => (a % m + m) % m;
-		private int Hash(TKey i) => Mod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
-		uint wang_hash(uint seed)
-		{
-			seed = (seed ^ 61) ^ (seed >> 16);
-			seed *= 9;
-			seed = seed ^ (seed >> 4);
-			seed *= 0x27d4eb2d;
-			seed = seed ^ (seed >> 15);
-			return seed;
 		}
 		public void Set(TKey key, TValue val)
 		{
@@ -159,11 +119,9 @@ namespace Calandiel.Collections
 			{
 				if (Capacity == 0) ExpandAndRehash();
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
-				if (LoadFactor > 0.7f) ExpandAndRehash();
+				if (LoadFactor > 0.65f) ExpandAndRehash();
 
-				var hash = Hash(key);
-				var index = hash;
-				int fails = 0;
+				var index = Hash(key);
 				while (true)
 				{
 					var Key = m_Keys[index];
@@ -183,95 +141,105 @@ namespace Calandiel.Collections
 						m_Values[index] = val;
 						return;
 					}
-					else if(Hash(Key) != hash)
-					{
-						// If the slot has a different hash than our current key, we entered a different probe
-						ExpandAndRehash();
-						Set(key, val);
-						return;
-					}
 					else
 					{
-						// if the bucket isn't open nor used by us, check the next one (linear probing)
-						index = Mod(index + 1, (int)m_Capacity);
-						// if we fail too many times, we should probably rehash.
-						// we will do it by recursively calling the function and returning early
-						fails++;
-						if (fails == ProbeLength)
-						{
-							ExpandAndRehash();
-							Set(key, val);
-							return;
-						}
+						// If the bucket isn't open nor used by us, check the next one (linear probing)
+						index++;
+						if (index >= m_Capacity) ExpandAndRehash();
 					}
 				}
 			}
 		}
-
 		public void DeleteKey(TKey key)
 		{
 			unsafe
 			{
 				int hash = Hash(key);
 
-				for (int i = 0; i <= ProbeLength; i++)
+				int offset = 0;
+				while (true)
 				{
-					var pos = Mod(hash + i, (int)m_Capacity);
-					var localKey = m_Keys[pos];
+					var pos = hash + offset;
+					if(pos >= m_Capacity) throw new Exception("CAN'T DELETE: KEY IS MISSING FROM THE DICTIONARY!");
 
+					var localKey = m_Keys[pos];
 					if (IsSlotOccupied(pos) == true)
 					{
-						// make sure this key is a part of the same probe
-						var localHash = Hash(localKey);
-						if (localHash == hash)
+						if (key.Equals(localKey))
 						{
-							if (key.Equals(localKey))
-							{
-								// If we managed to find the key to delete, delete it.
-								m_Keys[pos] = default;
-								m_Size--;
-								int finalIndex = pos;
-								// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
-								for (int j = i + 1; j <= ProbeLength; j++)
-								{
-									var curr = Mod(hash + j, (int)m_Capacity);
-									var prev = Mod(hash + j - 1, (int)m_Capacity);
+							// If we managed to find the key to delete, delete it.
+							m_Keys[pos] = default;
+							m_Size--;
+							int slotToEmpty = pos; // the index we want to clear at the very end
 
-									if (IsSlotOccupied(curr) == true)
+							// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
+							int j = 1; // offset
+							while (true)
+							{
+								var next = hash + j;
+								if (next >= m_Capacity)
+								{
+									SetSlot(slotToEmpty, false);
+									return;
+								}
+
+								if(IsSlotOccupied(next))
+								{
+									var nextKey = m_Keys[next];
+
+									var desiredPosition = Hash(nextKey);
+									if(desiredPosition <= slotToEmpty)
 									{
-										if (Hash(m_Keys[curr]) == hash)
-										{
-											// "shit down"
-											m_Keys[prev] = m_Keys[curr];
-										}
-										else
-										{
-											finalIndex = prev;
-											break;
-										}
+										m_Keys[slotToEmpty] = nextKey;
+										m_Values[slotToEmpty] = m_Values[next];
+										slotToEmpty = next;
+									}
+								}
+								else
+								{
+									SetSlot(slotToEmpty, false);
+									return;
+								}
+								j++;
+
+								/*
+								var next = Mod(hash + j, (int)m_Capacity);
+								var curr = Mod(hash + j - 1, (int)m_Capacity);
+
+								if (IsSlotOccupied(next) == true)
+								{
+									if (Mod(Hash(m_Keys[next]), (int)m_Capacity) < next)
+									{
+										// "shit down"
+										m_Keys[curr] = m_Keys[next];
 									}
 									else
 									{
-										finalIndex = prev;
+										finalIndex = curr;
 										break;
 									}
 								}
-								SetSlot(finalIndex, false);
-								return;
-							}
-							else
-							{
-								// The key is not present on this slot, keep probing further
+								else
+								{
+									// once we hit an empty slot, we can stop shifting things down
+									finalIndex = curr;
+									break;
+								}
+								*/
 							}
 						}
 						else
-							break;
+						{
+							// The key is not present on this slot, keep probing further
+							offset++;
+						}
 					}
 					else
-						break;
+					{
+						throw new Exception("CAN'T DELETE: KEY IS MISSING FROM THE DICTIONARY!");
+					}
 				}
 			}
-			throw new IndexOutOfRangeException($"This key ({key}) was missing from the dictionary!");
 		}
 		public bool TryGetValue(TKey key, out TValue result)
 		{
@@ -282,32 +250,27 @@ namespace Calandiel.Collections
 				result = default;
 				var hash = Hash(key);
 
-				for (int i = 0; i < ProbeLength; i++)
+				int i = 0;
+				while(true)
 				{
-					var pos = Mod(hash + i, (int)m_Capacity);
+					var pos = hash + i;
+					if (pos >= m_Capacity) return false;
 
-					var posKey = m_Keys[pos];
 					if (IsSlotOccupied(pos) == true)
 					{
-						var localHash = Hash(posKey);
-						if (localHash == hash)
+						var posKey = m_Keys[pos];
+						if (posKey.Equals(key))
 						{
-							if (posKey.Equals(key))
-							{
-								result = m_Values[pos];
-								return true;
-							}
+							result = m_Values[pos];
+							return true;
 						}
-						else
-							break;
 					}
 					else
-						break;
+						return false;
+					i++;
 				}
 			}
-			return false;
 		}
-		public int KeysBaseIndex(TKey key) => Mod(Hash(key), (int)m_Capacity);
 		public TValue this[TKey key]
 		{
 			get
@@ -325,6 +288,7 @@ namespace Calandiel.Collections
 				return owo;
 		}
 
+		#region OWO
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
 		public int Capacity { get { return (int)m_Capacity; } }
 		public int Size { get { return (int)m_Size; } }
@@ -388,6 +352,27 @@ namespace Calandiel.Collections
 				UnityEngine.Debug.Log(s.ToString());
 			}
 		}
+		public void QuickDebug()
+		{
+			unsafe
+			{
+				var s = new System.Text.StringBuilder();
+
+				s.Append("{ ");
+				for (int i = 0; i < m_Capacity; i++)
+				{
+					if (IsSlotOccupied(i))
+					{
+						s.Append(m_Keys[i].ToString());
+						s.Append(" -- ");
+						s.Append(m_Values[i].ToString());
+						s.Append(", ");
+					}
+				}
+				s.Append(" }");
+				UnityEngine.Debug.Log(s.ToString());
+			}
+		}
 
 		public void Save(BinaryWriter writer)
 		{
@@ -416,5 +401,50 @@ namespace Calandiel.Collections
 				this[(TKey)key] = (TValue)value;
 			}
 		}
+
+		#region SLOT STUFF
+		private bool IsSlotOccupied(int slotID)
+		{
+			unsafe
+			{
+				return IsSlotOccupiedOnBuffer(slotID, m_KeyPresentBuffer);
+			}
+		}
+		private unsafe bool IsSlotOccupiedOnBuffer(int slotID, Bitmask* buffer)
+		{
+			var byteID = slotID / 8;
+			var dataID = slotID - byteID * 8;
+			var data = buffer[byteID];
+			return data.Get((byte)dataID);
+		}
+		private void SetSlot(int slotID, bool value)
+		{
+			unsafe
+			{
+				var byteID = slotID / 8;
+				var dataID = slotID - byteID * 8;
+				var data = m_KeyPresentBuffer[byteID];
+				data.Set((byte)dataID, value);
+				m_KeyPresentBuffer[byteID] = data;
+			}
+		}
+		#endregion
+
+		#region HASH STUFF
+		// our own mod cuz '%' is dumb
+		private int HashMod(int a, int m) => (a % m + m) % m;
+		public int Hash(TKey i) => HashMod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
+		uint wang_hash(uint seed)
+		{
+			seed = (seed ^ 61) ^ (seed >> 16);
+			seed *= 9;
+			seed = seed ^ (seed >> 4);
+			seed *= 0x27d4eb2d;
+			seed = seed ^ (seed >> 15);
+			return seed;
+		}
+		#endregion
+
+		#endregion
 	}
 }
