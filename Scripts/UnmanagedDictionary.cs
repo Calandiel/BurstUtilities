@@ -42,7 +42,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				UnityEngine.Debug.Log($"EXPAND AND REHASH FROM: {m_Capacity}, INTO: {2 * m_Capacity + 3}");
+				//UnityEngine.Debug.Log($"EXPAND AND REHASH FROM: {m_Capacity}, INTO: {2 * m_Capacity + 3}");
 				var oldPresence = m_KeyPresentBuffer;
 				var oldKeys = m_Keys;
 				var oldValues = m_Values;
@@ -145,7 +145,12 @@ namespace Calandiel.Collections
 					{
 						// If the bucket isn't open nor used by us, check the next one (linear probing)
 						index++;
-						if (index >= m_Capacity) ExpandAndRehash();
+						if (index >= m_Capacity)
+						{
+							ExpandAndRehash();
+							Set(key, val);
+							return;
+						}
 					}
 				}
 			}
@@ -201,31 +206,6 @@ namespace Calandiel.Collections
 									return;
 								}
 								j++;
-
-								/*
-								var next = Mod(hash + j, (int)m_Capacity);
-								var curr = Mod(hash + j - 1, (int)m_Capacity);
-
-								if (IsSlotOccupied(next) == true)
-								{
-									if (Mod(Hash(m_Keys[next]), (int)m_Capacity) < next)
-									{
-										// "shit down"
-										m_Keys[curr] = m_Keys[next];
-									}
-									else
-									{
-										finalIndex = curr;
-										break;
-									}
-								}
-								else
-								{
-									// once we hit an empty slot, we can stop shifting things down
-									finalIndex = curr;
-									break;
-								}
-								*/
 							}
 						}
 						else
@@ -341,11 +321,16 @@ namespace Calandiel.Collections
 				s.Append("\n{\n");
 				for (int i = 0; i < m_Capacity; i++)
 				{
+					s.Append(i);
+					s.Append(":   ");
 					s.Append(IsSlotOccupied(i));
 					s.Append("   ");
 					s.Append(m_Keys[i].ToString());
 					s.Append("   ");
 					s.Append(m_Values[i].ToString());
+					s.Append(" (");
+					s.Append(Hash(m_Keys[i]));
+					s.Append(")");
 					s.Append("\n");
 				}
 				s.Append("}");

@@ -875,35 +875,30 @@ namespace Calandiel.Collections
 			unsafe
 			{
 				int hash = Hash(key);
-
-				for (int i = 0; i <= ProbeLength; i++)
+				int index = 0;
+				while (true)
 				{
-					var pos = Mod(hash + i, (int)m_Capacity);
-					var localKey = m_Keys[pos];
+					var pos = hash + index;
+					if (pos >= m_Capacity) return false;
 
 					if (IsSlotOccupied(pos) == true)
 					{
-						var localHash = Hash(localKey);
-						if (localHash == hash)
+						var localKey = m_Keys[pos];
+						if (key.Equals(localKey))
 						{
-							if (key.Equals(localKey))
-							{
-								return true;
-							}
+							return true;
 						}
-						else
-							break;
 					}
 					else
-						break;
+						return false;
+					index++;
 				}
 			}
-			return false;
 		}
 
 		// our own mod cuz '%' is dumb
-		private int Mod(int a, int m) => (a % m + m) % m;
-		private int Hash(TKey i) => Mod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
+		private int HashMod(int a, int m) => (a % m + m) % m;
+		private int Hash(TKey i) => HashMod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
 		uint wang_hash(uint seed)
 		{
 			seed = (seed ^ 61) ^ (seed >> 16);
@@ -917,14 +912,11 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				if(!IsCreated) Init(3); // sanity check
-
+				if (Capacity == 0) ExpandAndRehash();
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
-				if (LoadFactor > 0.7f) ExpandAndRehash();
+				if (LoadFactor > 0.65f) ExpandAndRehash();
 
-				var hash = Hash(key);
-				var index = hash;
-				int fails = 0;
+				var index = Hash(key);
 				while (true)
 				{
 					var Key = m_Keys[index];
@@ -938,24 +930,14 @@ namespace Calandiel.Collections
 					}
 					else if (Key.Equals(key))
 					{
-						// If the slot is occupied and the keys are equal, the value was added in the past. Nothing to be done.
-						return;
-					}
-					else if(Hash(Key) != hash)
-					{
-						// If the slot has a different hash than the key, we entered a different probe
-						ExpandAndRehash();
-						Add(key);
+						// If the slot is occupied and the keys are equal, return (the key is already present!)
 						return;
 					}
 					else
 					{
-						// if the bucket isn't open nor used by us, check the next one (linear probing)
-						index = Mod(index + 1, (int)m_Capacity);
-						// if we fail too many times, we should probably rehash.
-						// we will do it by recursively calling the function and returning early
-						fails++;
-						if (fails == ProbeLength)
+						// If the bucket isn't open nor used by us, check the next one (linear probing)
+						index++;
+						if (index >= m_Capacity)
 						{
 							ExpandAndRehash();
 							Add(key);
@@ -971,63 +953,64 @@ namespace Calandiel.Collections
 			{
 				int hash = Hash(key);
 
-				for (int i = 0; i <= ProbeLength; i++)
+				int offset = 0;
+				while (true)
 				{
-					var pos = Mod(hash + i, (int)m_Capacity);
-					var localKey = m_Keys[pos];
+					var pos = hash + offset;
+					if (pos >= m_Capacity) throw new Exception("CAN'T DELETE: KEY IS MISSING FROM THE HASH SET!");
 
+					var localKey = m_Keys[pos];
 					if (IsSlotOccupied(pos) == true)
 					{
-						var localHash = Hash(localKey);
-						if (localHash == hash)
+						if (key.Equals(localKey))
 						{
-							if (key.Equals(localKey))
-							{
-								// If we managed to find the key to delete, delete it.
-								m_Keys[pos] = default;
-								m_Size--;
-								int finalIndex = pos;
-								// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
-								for (int j = i + 1; j <= ProbeLength; j++)
-								{
-									var curr = Mod(hash + j, (int)m_Capacity);
-									var prev = Mod(hash + j - 1, (int)m_Capacity);
+							// If we managed to find the key to delete, delete it.
+							m_Keys[pos] = default;
+							m_Size--;
+							int slotToEmpty = pos; // the index we want to clear at the very end
 
-									if (IsSlotOccupied(curr) == true)
+							// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
+							int j = 1; // offset
+							while (true)
+							{
+								var next = hash + j;
+								if (next >= m_Capacity)
+								{
+									SetSlot(slotToEmpty, false);
+									return;
+								}
+
+								if (IsSlotOccupied(next))
+								{
+									var nextKey = m_Keys[next];
+
+									var desiredPosition = Hash(nextKey);
+									if (desiredPosition <= slotToEmpty)
 									{
-										if (Hash(m_Keys[curr]) == hash)
-										{
-											// "shit down"
-											m_Keys[prev] = m_Keys[curr];
-										}
-										else
-										{
-											finalIndex = prev;
-											break;
-										}
-									}
-									else
-									{
-										finalIndex = prev;
-										break;
+										m_Keys[slotToEmpty] = nextKey;
+										slotToEmpty = next;
 									}
 								}
-								SetSlot(finalIndex, false);
-								return;
-							}
-							else
-							{
-								// if we're in the same probe and the key isn't the one we want, keep probing deeper
+								else
+								{
+									SetSlot(slotToEmpty, false);
+									return;
+								}
+								j++;
 							}
 						}
 						else
-							break;
+						{
+							// The key is not present on this slot, keep probing further
+							offset++;
+						}
 					}
 					else
-						break;
+					{
+						throw new Exception("CAN'T DELETE: KEY IS MISSING FROM THE HASH SET!");
+					}
 				}
 			}
-			throw new IndexOutOfRangeException($"This key ({key}) was missing from the dictionary!");
 		}
 
 		public bool TryGetAtIndex(int index, out TKey result)
@@ -1082,9 +1065,14 @@ namespace Calandiel.Collections
 				s.Append("\n{\n");
 				for (int i = 0; i < m_Capacity; i++)
 				{
+					s.Append(i);
+					s.Append(":   ");
 					s.Append(IsSlotOccupied(i));
 					s.Append("   ");
 					s.Append(m_Keys[i]);
+					s.Append(" (");
+					s.Append(Hash(m_Keys[i]));
+					s.Append(")");
 					s.Append("\n");
 				}
 				s.Append("}");
