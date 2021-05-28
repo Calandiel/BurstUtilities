@@ -964,24 +964,33 @@ namespace Calandiel.Collections
 
 					if (IsSlotOccupied(pos) == true)
 					{
-						if (key.Equals(localKey))
+						var localHash = Hash(localKey);
+						if (localHash == hash)
 						{
-							// If we managed to find the key to delete, delete it.
-							m_Keys[pos] = default;
-							m_Size--;
-							int finalIndex = pos;
-							// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
-							for (int j = i + 1; j <= ProbeLength; j++)
+							if (key.Equals(localKey))
 							{
-								var curr = Mod(hash + j, (int)m_Capacity);
-								var prev = Mod(hash + j - 1, (int)m_Capacity);
-
-								if (IsSlotOccupied(curr) == true)
+								// If we managed to find the key to delete, delete it.
+								m_Keys[pos] = default;
+								m_Size--;
+								int finalIndex = pos;
+								// Since we use linear probing, we need to "shift down" all remaining entries in the probe.
+								for (int j = i + 1; j <= ProbeLength; j++)
 								{
-									if (Hash(m_Keys[curr]) == hash)
+									var curr = Mod(hash + j, (int)m_Capacity);
+									var prev = Mod(hash + j - 1, (int)m_Capacity);
+
+									if (IsSlotOccupied(curr) == true)
 									{
-										// "shit down"
-										m_Keys[prev] = m_Keys[curr];
+										if (Hash(m_Keys[curr]) == hash)
+										{
+											// "shit down"
+											m_Keys[prev] = m_Keys[curr];
+										}
+										else
+										{
+											finalIndex = prev;
+											break;
+										}
 									}
 									else
 									{
@@ -989,15 +998,16 @@ namespace Calandiel.Collections
 										break;
 									}
 								}
-								else
-								{
-									finalIndex = prev;
-									break;
-								}
+								SetSlot(finalIndex, false);
+								return;
 							}
-							SetSlot(finalIndex, false);
-							return;
+							else
+							{
+								// if we're in the same probe and the key isn't the one we want, keep probing deeper
+							}
 						}
+						else
+							break;
 					}
 					else
 						break;
