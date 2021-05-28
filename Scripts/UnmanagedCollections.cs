@@ -883,10 +883,16 @@ namespace Calandiel.Collections
 
 					if (IsSlotOccupied(pos) == true)
 					{
-						if (key.Equals(localKey))
+						var localHash = Hash(localKey);
+						if (localHash == hash)
 						{
-							return true;
+							if (key.Equals(localKey))
+							{
+								return true;
+							}
 						}
+						else
+							break;
 					}
 					else
 						break;
@@ -916,7 +922,8 @@ namespace Calandiel.Collections
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
 				if (LoadFactor > 0.7f) ExpandAndRehash();
 
-				var index = Hash(key);
+				var hash = Hash(key);
+				var index = hash;
 				int fails = 0;
 				while (true)
 				{
@@ -932,6 +939,13 @@ namespace Calandiel.Collections
 					else if (Key.Equals(key))
 					{
 						// If the slot is occupied and the keys are equal, the value was added in the past. Nothing to be done.
+						return;
+					}
+					else if(Hash(Key) != hash)
+					{
+						// If the slot has a different hash than the key, we entered a different probe
+						ExpandAndRehash();
+						Add(key);
 						return;
 					}
 					else

@@ -161,7 +161,8 @@ namespace Calandiel.Collections
 				// check for high load factors -- we can't let it get too high or our linear scheme will get very inefficient :<
 				if (LoadFactor > 0.7f) ExpandAndRehash();
 
-				var index = Hash(key);
+				var hash = Hash(key);
+				var index = hash;
 				int fails = 0;
 				while (true)
 				{
@@ -180,6 +181,13 @@ namespace Calandiel.Collections
 						// If the slot is occupied and the keys are equal, write and return (this is the place we need to write)
 						m_Keys[index] = key;
 						m_Values[index] = val;
+						return;
+					}
+					else if(Hash(Key) != hash)
+					{
+						// If the slot has a different hash than our current key, we entered a different probe
+						ExpandAndRehash();
+						Set(key, val);
 						return;
 					}
 					else
@@ -281,11 +289,17 @@ namespace Calandiel.Collections
 					var posKey = m_Keys[pos];
 					if (IsSlotOccupied(pos) == true)
 					{
-						if (posKey.Equals(key))
+						var localHash = Hash(posKey);
+						if (localHash == hash)
 						{
-							result = m_Values[pos];
-							return true;
+							if (posKey.Equals(key))
+							{
+								result = m_Values[pos];
+								return true;
+							}
 						}
+						else
+							break;
 					}
 					else
 						break;
