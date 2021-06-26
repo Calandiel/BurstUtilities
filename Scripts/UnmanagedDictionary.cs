@@ -82,9 +82,12 @@ namespace Calandiel.Collections
 			unsafe
 			{
 				m_Size = 0;
-				for (int i = 0; i < (1 + m_Capacity / 8); i++)
+				if (m_Capacity > 0)
 				{
-					m_KeyPresentBuffer[i] = new Bitmask() { data = 0 };
+					for (int i = 0; i < (1 + m_Capacity / 8); i++)
+					{
+						m_KeyPresentBuffer[i] = new Bitmask() { data = 0 };
+					}
 				}
 			}
 		}
