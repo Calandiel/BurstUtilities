@@ -95,25 +95,30 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				int hash = Hash(key);
-				int index = 0;
-				while(true)
+				if (m_Capacity > 0)
 				{
-					var pos = hash + index;
-					if (pos >= m_Capacity) return false;
-
-					if (IsSlotOccupied(pos) == true)
+					int hash = Hash(key);
+					int index = 0;
+					while (true)
 					{
-						var localKey = m_Keys[pos];
-						if (key.Equals(localKey))
+						var pos = hash + index;
+						if (pos >= m_Capacity) return false;
+
+						if (IsSlotOccupied(pos) == true)
 						{
-							return true;
+							var localKey = m_Keys[pos];
+							if (key.Equals(localKey))
+							{
+								return true;
+							}
 						}
+						else
+							return false;
+						index++;
 					}
-					else
-						return false;
-					index++;
 				}
+				else
+					return false;
 			}
 		}
 		public void Set(TKey key, TValue val)
