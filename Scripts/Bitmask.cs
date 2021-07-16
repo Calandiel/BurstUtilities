@@ -30,7 +30,7 @@ namespace Calandiel
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void SetFalse(byte index)
 		{
-			data = (byte)(data ^ (1 << index));
+			data = (byte)(data & ~(1 << index));
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Get(byte index)
