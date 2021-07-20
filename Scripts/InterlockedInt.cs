@@ -1,12 +1,36 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace Calandiel
 {
+	//an example with a pointer:
+	// Mutex.Lock(ref *(int*)StaticStorageSOA.InterlockedInt_1.Data.m_Buffer);
+	public struct Mutex
+	{
+		public static void Lock(ref int r)
+		{
+			unsafe
+			{
+				while (1 == Interlocked.Exchange(ref r, 1))
+				{
+					// do nothing, we're just waiting for the lock to free
+				}
+			}
+		}
+		public static void Unlock(ref int r)
+		{
+			unsafe
+			{
+				Interlocked.Exchange(ref r, 0);
+			}
+		}
+	}
+
 	public struct InterlockedInt
 	{
 		[NativeDisableUnsafePtrRestriction]
