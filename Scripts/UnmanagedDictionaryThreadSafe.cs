@@ -25,7 +25,7 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				Mutex.Lock(ref *(int*)_lock.Raw());
+				Mutex.Unlock(ref *(int*)_lock.Raw());
 			}
 		}
 
