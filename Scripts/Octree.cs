@@ -120,15 +120,15 @@ namespace Calandiel.Collections
 						bool canMerge = true;
 
 						// Determine children of our parent that aren't the same as the node we're currently inspecting
-						StackBasedArrayUInt7 children = default;
-						for (uint i = 0; i < 8; i++)
+						StackArray8<uint> children = default;
+						for (int i = 0; i < 8; i++)
 						{
-							var child = Child(parent, i);
+							var child = Child(parent, (uint)i);
 							if (child != node)
 								children[i] = child;
 						}
 						// Determine if a merge is possible.
-						for (uint i = 0; i < 7; i++)
+						for (int i = 0; i < 7; i++)
 						{
 							var child = children[i];
 							if (!data.ContainsKey(child))
@@ -140,7 +140,7 @@ namespace Calandiel.Collections
 						if (canMerge)
 						{
 							// If a merge is possible, remove all children
-							for (uint i = 0; i < 7; i++)
+							for (int i = 0; i < 7; i++)
 							{
 								var child = children[i];
 								data.Remove(child);

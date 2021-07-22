@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Calandiel
 {
 	//an example with a pointer:
-	// Mutex.Lock(ref *(int*)StaticStorageSOA.InterlockedInt_1.Data.m_Buffer);
+	// Mutex.Lock(ref *(int*)m_Buffer);
 	public struct Mutex
 	{
 		public static void Lock(ref int r)
