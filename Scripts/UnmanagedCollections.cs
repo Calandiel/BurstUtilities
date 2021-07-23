@@ -6,15 +6,6 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace Calandiel.Collections
 {
-	public class UnmanagedCollectionAttribute : Attribute
-	{
-	}
-	public interface IUnmanagedCollectionSave
-	{
-		void Save(System.IO.BinaryWriter writer);
-		void Load(System.IO.BinaryReader reader);
-	}
-
 	public struct SafePtr<T> : IEquatable<SafePtr<T>> where T : unmanaged
 	{
 		public long val;
@@ -136,8 +127,7 @@ namespace Calandiel.Collections
 
 	#region COLLECTIONS
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
-	public struct UnmanagedList<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
+	public struct UnmanagedList<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		private unsafe void* m_Buffer;
@@ -311,30 +301,9 @@ namespace Calandiel.Collections
 				UnityEngine.Debug.Log(s.ToString());
 			}
 		}
-
-		public void Save(BinaryWriter writer)
-		{
-			writer.Write((int)this.Length);
-			for (int i = 0; i < this.Length; i++)
-			{
-				Utilities.SavingUtility.Save(this[i], writer);
-			}
-		}
-
-		public void Load(BinaryReader reader)
-		{
-			var len = reader.ReadInt32();
-			for (int i = 0; i < len; i++)
-			{
-				object t = default(T);
-				Utilities.SavingUtility.Load(ref t, reader);
-				this.Add((T)t);
-			}
-		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
-	public struct UnmanagedArray<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
+	public struct UnmanagedArray<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		public unsafe void* m_Buffer;
@@ -410,30 +379,9 @@ namespace Calandiel.Collections
 				o[i] = arr[i];
 			return o;
 		}
-
-		public void Save(BinaryWriter writer)
-		{
-			writer.Write((int)this.Length);
-			for (int i = 0; i < this.Length; i++)
-			{
-				Utilities.SavingUtility.Save(this[i], writer);
-			}
-		}
-		public void Load(BinaryReader reader)
-		{
-			var len = reader.ReadInt32();
-			this = new UnmanagedArray<T>((uint)len);
-			for (int i = 0; i < len; i++)
-			{
-				object t = default(T);
-				Utilities.SavingUtility.Load(ref t, reader);
-				this[i] = (T)t;
-			}
-		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
-	public struct UnmanagedStack<T> : IDisposable, IUnmanagedCollectionSave where T : unmanaged
+	public struct UnmanagedStack<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
 		public unsafe void* m_Buffer;
@@ -573,28 +521,8 @@ namespace Calandiel.Collections
 				o[i] = this[i];
 			return o;
 		}
-
-		public void Save(BinaryWriter writer)
-		{
-			writer.Write((int)this.Length);
-			for (int i = 0; i < this.Length; i++)
-			{
-				Utilities.SavingUtility.Save(this[i], writer);
-			}
-		}
-		public void Load(BinaryReader reader)
-		{
-			var len = reader.ReadInt32();
-			for (int i = 0; i < len; i++)
-			{
-				object t = default(T);
-				Utilities.SavingUtility.Load(ref t, reader);
-				this.Push((T)t);
-			}
-		}
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
 	public struct UnmanagedQueue<T> : IDisposable where T : unmanaged
 	{
 		[NativeDisableUnsafePtrRestriction]
@@ -761,10 +689,7 @@ namespace Calandiel.Collections
 
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
-	public struct UnmanagedHashSet<TKey> :
-		IDisposable, IUnmanagedCollectionSave
-		where TKey : unmanaged, IEquatable<TKey>
+	public struct UnmanagedHashSet<TKey> : IDisposable where TKey : unmanaged, IEquatable<TKey>
 	{
 		[NativeDisableUnsafePtrRestriction]
 		public unsafe Bitmask* m_KeyPresentBuffer;
@@ -906,15 +831,9 @@ namespace Calandiel.Collections
 
 		// our own mod cuz '%' is dumb
 		private int HashMod(int a, int m) => (a % m + m) % m;
-		private int Hash(TKey i) => HashMod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
-		uint wang_hash(uint seed)
+		private int Hash(TKey i)
 		{
-			seed = (seed ^ 61) ^ (seed >> 16);
-			seed *= 9;
-			seed = seed ^ (seed >> 4);
-			seed *= 0x27d4eb2d;
-			seed = seed ^ (seed >> 15);
-			return seed;
+			return HashMod((int)Internal.Hash.pcg_hash((uint)i.GetHashCode()), (int)m_Capacity);
 		}
 		public void Add(TKey key)
 		{
@@ -1085,29 +1004,6 @@ namespace Calandiel.Collections
 				}
 				s.Append("}");
 				UnityEngine.Debug.Log(s.ToString());
-			}
-		}
-
-		public void Save(BinaryWriter writer)
-		{
-			writer.Write((int)this.m_Size);
-			for (int i = 0; i < this.Capacity; i++)
-			{
-				if(this.TryGetAtIndex(i, out TKey val))
-				{
-					Utilities.SavingUtility.Save(val, writer);
-				}
-			}
-		}
-		public void Load(BinaryReader reader)
-		{
-			var len = reader.ReadInt32();
-			this = new UnmanagedHashSet<TKey>((uint)len);
-			for (int i = 0; i < len; i++)
-			{
-				object key = default(TKey);
-				Utilities.SavingUtility.Load(ref key, reader);
-				this.Add((TKey)key);
 			}
 		}
 	}
