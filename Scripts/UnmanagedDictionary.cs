@@ -3,13 +3,13 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Calandiel.Internal;
 
 namespace Calandiel.Collections
 {
 	[StructLayout(LayoutKind.Sequential)]
-	[UnmanagedCollection]
 	public struct UnmanagedDictionary<TKey, TValue> :
-	IDisposable, IUnmanagedCollectionSave
+	IDisposable
 	where TValue : unmanaged//, IEquatable<TValue>
 	where TKey : unmanaged, IEquatable<TKey>
 	{
@@ -293,7 +293,6 @@ namespace Calandiel.Collections
 				return owo;
 		}
 
-		#region OWO
 		public float LoadFactor { get { return m_Size / (float)Capacity; } }
 		public int Capacity { get { return (int)m_Capacity; } }
 		public int Size { get { return (int)m_Size; } }
@@ -384,35 +383,7 @@ namespace Calandiel.Collections
 			}
 		}
 
-		public void Save(BinaryWriter writer)
-		{
-			writer.Write((int)this.m_Size);
-			for (int i = 0; i < this.Capacity; i++)
-			{
-				if (this.TryGetAtIndex(i, out TKey key, out TValue val))
-				{
-					// key
-					Utilities.SavingUtility.Save(key, writer);
-					// value
-					Utilities.SavingUtility.Save(val, writer);
-				}
-			}
-		}
-		public void Load(BinaryReader reader)
-		{
-			var len = reader.ReadInt32();
-			this = new UnmanagedDictionary<TKey, TValue>((uint)len);
-			for (int i = 0; i < len; i++)
-			{
-				object key = default(TKey);
-				Utilities.SavingUtility.Load(ref key, reader);
-				object value = default(TValue);
-				Utilities.SavingUtility.Load(ref value, reader);
-				this[(TKey)key] = (TValue)value;
-			}
-		}
-
-		#region SLOT STUFF
+		#region SLOT
 		private bool IsSlotOccupied(int slotID)
 		{
 			unsafe
@@ -440,21 +411,14 @@ namespace Calandiel.Collections
 		}
 		#endregion
 
-		#region HASH STUFF
+		#region HASH
 		// our own mod cuz '%' is dumb
 		private int HashMod(int a, int m) => (a % m + m) % m;
-		public int Hash(TKey i) => HashMod((int)wang_hash((uint)i.GetHashCode()), (int)m_Capacity);
-		uint wang_hash(uint seed)
+		private int Hash(TKey i)
 		{
-			seed = (seed ^ 61) ^ (seed >> 16);
-			seed *= 9;
-			seed = seed ^ (seed >> 4);
-			seed *= 0x27d4eb2d;
-			seed = seed ^ (seed >> 15);
-			return seed;
+			return HashMod((int)Internal.Hash.pcg_hash((uint)i.GetHashCode()), (int)m_Capacity);
 		}
-		#endregion
+		#endregion}
 
-		#endregion
 	}
 }
