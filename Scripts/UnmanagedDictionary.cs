@@ -418,7 +418,6 @@ namespace Calandiel.Collections
 		{
 			return HashMod((int)Internal.Hash.pcg_hash((uint)i.GetHashCode()), (int)m_Capacity);
 		}
-		#endregion}
-
+		#endregion
 	}
 }
