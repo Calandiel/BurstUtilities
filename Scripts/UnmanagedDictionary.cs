@@ -233,29 +233,16 @@ namespace Calandiel.Collections
 		{
 			unsafe
 			{
-				if (Capacity == 0) { result = default; return false; }
-
-				result = default;
-				var hash = Hash(key);
-
-				int i = 0;
-				while(true)
+				TValue* ptr;
+				if(TryGetPtr(key, out ptr))
 				{
-					var pos = hash + i;
-					if (pos >= m_Capacity) return false;
-
-					if (IsSlotOccupied(pos) == true)
-					{
-						var posKey = m_Keys[pos];
-						if (posKey.Equals(key))
-						{
-							result = m_Values[pos];
-							return true;
-						}
-					}
-					else
-						return false;
-					i++;
+					result = *ptr;
+					return true;
+				}
+				else
+				{
+					result = default;
+					return false;
 				}
 			}
 		}
@@ -267,6 +254,36 @@ namespace Calandiel.Collections
 				return owo;
 			}
 			set { Set(key, value); }
+		}
+		public unsafe bool TryGetPtr(TKey key, out TValue* ptr)
+		{
+			unsafe
+			{
+				if (Capacity == 0) { ptr = default; return false; }
+
+				ptr = default;
+				var hash = Hash(key);
+
+				int i = 0;
+				while (true)
+				{
+					var pos = hash + i;
+					if (pos >= m_Capacity) return false;
+
+					if (IsSlotOccupied(pos) == true)
+					{
+						var posKey = m_Keys[pos];
+						if (posKey.Equals(key))
+						{
+							ptr = m_Values + pos;
+							return true;
+						}
+					}
+					else
+						return false;
+					i++;
+				}
+			}
 		}
 		public TValue GetOrDefault(TKey key)
 		{
