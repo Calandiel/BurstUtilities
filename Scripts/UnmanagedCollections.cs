@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Calandiel;
 
 namespace Calandiel.Collections
 {
@@ -33,12 +34,14 @@ namespace Calandiel.Collections
 			unsafe
 			{
 				UnsafeUtility.Free(ptr, Allocator.Persistent);
+				ptr = (void*)IntPtr.Zero;
 			}
 		}
 		public T Read() { unsafe { return UnsafeUtility.ReadArrayElement<T>(ptr, 0); } }
 		public void Write(T data) { unsafe { UnsafeUtility.WriteArrayElement<T>(ptr, 0, data); } }
 		public unsafe void* Raw() { unsafe { return ptr; } }
 		public IntPtr RawSafe() { unsafe { return (IntPtr)ptr; } }
+		public bool IsCreated { get { unsafe { return (IntPtr)ptr != IntPtr.Zero; } } }
 	}
 
 	#region EXTENSIONS
@@ -833,7 +836,7 @@ namespace Calandiel.Collections
 		private int HashMod(int a, int m) => (a % m + m) % m;
 		private int Hash(TKey i)
 		{
-			return HashMod((int)Internal.Hash.pcg_hash((uint)i.GetHashCode()), (int)m_Capacity);
+			return HashMod((int)Calandiel.Internal.Hash.pcg_hash((uint)i.GetHashCode()), (int)m_Capacity);
 		}
 		public void Add(TKey key)
 		{
