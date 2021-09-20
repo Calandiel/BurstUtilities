@@ -107,7 +107,7 @@ namespace B83.Image.BMP
 		public Color32[] imageData;
 		public Texture2D ToTexture2D()
 		{
-			var tex = new Texture2D(info.absWidth, info.absHeight);
+			var tex = new Texture2D(info.absWidth, info.absHeight);//, TextureFormat.RGBA32, true, true);
 			tex.SetPixels32(imageData);
 			tex.Apply();
 			return tex;
