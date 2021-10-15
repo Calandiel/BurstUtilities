@@ -334,6 +334,22 @@ namespace Calandiel.Collections
 				}
 			}
 		}
+		public unsafe bool TryGetPtrAtIndex(int index, out TKey key, out TValue* ptr)
+		{
+			var pos = index;
+			if (IsSlotOccupied(pos) == true)
+			{
+				key = m_Keys[pos];
+				ptr = m_Values + pos;
+				return true;
+			}
+			else
+			{
+				key = default;
+				ptr = default;
+				return false;
+			}
+		}
 
 		public void Debug()
 		{
