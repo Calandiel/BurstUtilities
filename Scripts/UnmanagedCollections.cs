@@ -83,6 +83,14 @@ namespace Calandiel.Collections
 			else
 				throw new System.Exception("The item is not present in the collection!");
 		}
+		public static void RemoveSwapBack<T>(ref this UnmanagedList<T> list, T item) where T : unmanaged, IEquatable<T>
+		{
+			int i = 0;
+			if (list.Contains(item, ref i))
+				list.RemoveAtSwapBack(i);
+			else
+				throw new System.Exception("The item is not present in the collection!");
+		}
 	}
 
 	public static class ArrayExtensions
