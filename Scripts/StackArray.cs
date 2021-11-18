@@ -2,7 +2,7 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace Calandiel.Collections
 {
-	struct StackArray8<T> where T : unmanaged
+	public struct StackArray8<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 8;
@@ -34,7 +34,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray16<T> where T : unmanaged
+	public struct StackArray16<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 16;
@@ -66,7 +66,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray32<T> where T : unmanaged
+	public struct StackArray32<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 32;
@@ -98,7 +98,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray64<T> where T : unmanaged
+	public struct StackArray64<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 64;
@@ -130,7 +130,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray128<T> where T : unmanaged
+	public struct StackArray128<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 128;
@@ -162,7 +162,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray256<T> where T : unmanaged
+	public struct StackArray256<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 256;
@@ -194,7 +194,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray512<T> where T : unmanaged
+	public struct StackArray512<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 512;
@@ -226,7 +226,7 @@ namespace Calandiel.Collections
 			}
 		}
 	}
-	struct StackArray1024<T> where T : unmanaged
+	public struct StackArray1024<T> where T : unmanaged
 	{
 		private unsafe fixed byte data[bufferSize];
 		private const int bufferSize = 1024;
